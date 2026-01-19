@@ -3,34 +3,40 @@
 import { createClient } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export default function TaskApp() {
+  // ✅ Initialize ONLY when component mounts (in browser)
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTask, setNewTask] = useState('');
+
+  async function fetchTasks() {
+    const { data, error } = await supabase.from('tasks').select('*');
+    if (error) console.error('Fetch error:', error);
+    else setTasks(data || []);
+  }
 
   useEffect(() => {
     fetchTasks();
   }, []);
 
-  async function fetchTasks() {
-    const { data } = await supabase.from('tasks').select('*');
-    setTasks(data || []);
-  }
-
   async function addTask() {
     if (!newTask.trim()) return;
-    await supabase.from('tasks').insert({ name: newTask });
-    setNewTask('');
-    fetchTasks();
+    const { error } = await supabase.from('tasks').insert({ name: newTask });
+    if (error) console.error('Add error:', error);
+    else {
+      setNewTask('');
+      fetchTasks();
+    }
   }
 
   async function deleteTask(id: number) {
-    await supabase.from('tasks').delete().eq('id', id);
-    fetchTasks();
+    const { error } = await supabase.from('tasks').delete().eq('id', id);
+    if (error) console.error('Delete error:', error);
+    else fetchTasks();
   }
 
   return (
@@ -66,4 +72,3 @@ export default function TaskApp() {
     </div>
   );
 }
- 
